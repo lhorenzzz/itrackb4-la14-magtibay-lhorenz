@@ -1,11 +1,28 @@
-J1. Your HomeController is not a resource controller. Name two things an index() on a resource controller does that yours does not have to.
+# GameHub: Authentication and Route Protection (LA14)
 
-A resource index() fetches a list of records from the table, like Game::paginate(8), and passes that whole list to the view. It also reads the search, filter and sort values from the URL to decide which rows to show. My HomeController only counts rows and returns one page, so it does not need a list, filters or paging.
+GameHub is a Laravel 12 application for browsing game recommendations. This lab added registration, login, logout, route protection, and navbar controls that change depending on whether the visitor is signed in.
 
-J2. Your pagination links lost the search term until you added one method. Say what those links contained before, and what the controller therefore received.
+## F1. Authentication vs. authorisation
 
-Before the fix, the links only contained ?page=2, with no search in them. So when I clicked page 2, the controller received page=2 and no search term. It skipped the where for the search, so the full list came back and the search box was empty. withQueryString() fixed this by adding search=... to every page link.
+**Authentication** answers who the visitor is. This lesson gave GameHub registration, login, and logout, so the application can now identify a signed-in user and show their name.
+**Authorisation** answers what that user is allowed to do. It is still missing: right now any signed-in user can create, edit, or delete any game, and no roles or ownership rules exist yet.
 
-J3. A misspelled sort value does not break your page. Explain why that is worse than an error, and what your allowed list does about it.
+## F2. Why `session()->regenerate()` after login
 
-An error tells me right away that something is wrong. A misspelled sort value like ?sort=yeer shows a normal-looking page that is not sorted the way the visitor asked, so nobody notices the mistake. My allowed list (name, year, platform) checks the value first, and anything not on it falls back to the default sort. The page stays safe, and a made-up column name never reaches the database query.
+After a successful `Auth::attempt()`, GameHub calls `$request->session()->regenerate()` to issue a new session ID. If it were skipped, an attacker who planted a known session ID in the victim's browser beforehand (session fixation) would keep that same ID after the victim logs in, and could use it to act as the victim. Regenerating makes the ID the attacker knows worthless.
+
+## F3. Same message for wrong password and unknown email
+
+`LoginController@store` returns "The provided credentials do not match our records." in both cases. If the messages differed, a stranger could probe the login form to learn which emails are registered in GameHub (user enumeration) and then focus on guessing those accounts' passwords. A single generic message reveals nothing about which part was wrong.
+
+## F4. Why index and show are public
+
+In GameHub, `games.index` and `games.show` only read data, so letting guests browse and view game details is harmless and makes the catalogue useful to anyone. `create`, `store`, `edit`, `update`, and `destroy` change the data, so they are attached to the `auth` middleware through `middlewareFor`, and only signed-in users can reach them.
+
+## F5. Why hiding buttons is not enough
+
+Wrapping Add, Edit, and Delete in `@auth` only changes what the page displays. A guest can still type `/games/create` or `/games/1/edit` into the address bar, or send a request directly, and the server would respond if nothing checked it. What actually stops a stranger is the `auth` middleware on the routes, which redirects guests to the login page before the controller runs (shown in screenshot 19).
+
+## F6. Why the login route must be named exactly `login`
+
+When a guest requests a protected route, the `auth` middleware redirects them using `route('login')`, so it looks up a route with that exact name. In screenshot 20 the GET route was renamed to `signin`, so the lookup failed and Laravel threw `Route [login] not defined` instead of showing the login page. The same name is also used in the navbar for guests, so the error can appear on other pages as well.

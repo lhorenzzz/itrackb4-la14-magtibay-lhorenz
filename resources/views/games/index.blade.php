@@ -24,12 +24,16 @@
                 @else
                     any platform
                 @endif
+
+
             </span>
             {{-- Tanggalin ang dalawang filter --}}
             <a href="{{ route('games.index') }}" class="btn btn-sm btn-outline-secondary ms-2">Clear Filter</a>
         @endif
 
+        @auth
         <a href="{{ route('games.create') }}" class="btn btn-sm btn-outline-secondary ms-2">Add Game</a>
+        @endauth
     </div>
 
     {{-- method="GET" = napupunta sa URL ang mga pinili, kaya pwedeng i-bookmark (H1) --}}
@@ -75,7 +79,9 @@
                 <th>Genre</th>
                 <th>Platform</th>
                 <th>Year</th>
+                @auth
                 <th>Actions</th>
+                @endauth
             </tr>
         </thead>
         <tbody>
@@ -95,6 +101,7 @@
                     </td>
                     <td>{{ $game->platform }}</td>
                     <td>{{ $game->year }}</td>
+                    @auth
                     <td>
                         {{-- d-flex gap-1 = ilalagay nang magkatabi ang Edit at Delete, may konting espasyo --}}
                         <div class="d-flex gap-1">
@@ -112,6 +119,7 @@
                                 </form>
                         </div>
                     </td>
+                    @endauth
                 </tr>
             @empty
                 <tr>
